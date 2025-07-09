@@ -160,12 +160,10 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
     async function initialize() {
       if (!videoRef.current) {
         videoRef.current = await setupWebcam();
-        console.log("webcam setup!");
       }
       if (!floatingCanvasCtx) {
         const [, ctx] = await setupCanvas(videoRef.current, "float-canvas");
         setFloatingCanvasCtx(ctx);
-        console.log("canvas setup!");
       }
     }
 
@@ -173,7 +171,6 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
       if (videoRef.current) {
         await teardownWebcam(videoRef.current);
         videoRef.current = null;
-        console.log("webcam teardown!");
       }
       if (floatingCanvasCtx) {
         // Clear the canvas before destroying the context
@@ -184,7 +181,6 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
           floatingCanvasCtx.canvas.height
         );
         setFloatingCanvasCtx(null);
-        console.log("canvas teardown!");
       }
     }
 

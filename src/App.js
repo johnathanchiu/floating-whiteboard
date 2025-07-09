@@ -16,7 +16,6 @@ function App() {
   const [isModelLoaded, setModelLoaded] = useState(false);
   useEffect(() => {
     async function setupModel() {
-      console.log("model loading...");
       // if (!DEV_MODE) {
       const vision = await FilesetResolver.forVisionTasks(
         "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
@@ -33,7 +32,6 @@ function App() {
         minTrackingConfidence: 0.5,
         customGesturesClassifierOptions: { scoreThreshold: 0.9 },
       });
-      console.log("model loaded!");
       setModelLoaded(true);
     }
 
