@@ -22,5 +22,5 @@ export const useAnimationFrame = (callback, shouldAnimate = false) => {
     }
 
     return () => cancelAnimationFrame(frameRef.current);
-  }, [shouldAnimate]);
+  }, [shouldAnimate, animate]);
 };

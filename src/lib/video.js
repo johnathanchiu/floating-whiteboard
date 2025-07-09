@@ -19,10 +19,17 @@ export async function setupWebcam() {
   video.srcObject = stream;
   await new Promise((resolve) => {
     video.onloadedmetadata = () => {
+      console.log(
+        "Video metadata loaded:",
+        video.videoWidth,
+        video.videoHeight
+      );
       resolve();
     };
   });
-  video.play();
+
+  await video.play();
+  console.log("Video should be playing now");
 
   video.width = video.videoWidth;
   video.height = video.videoHeight;

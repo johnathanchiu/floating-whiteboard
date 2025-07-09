@@ -23,13 +23,6 @@ const FINGER_LOOKUP_INDICES = [
   "PINKY_DIP",
   "PINKY_TIP",
 ];
-const GESTURE_POINT_LOOKUP = {
-  none: "",
-  index_pinch: "INDEX_FINGER_TIP",
-  middle_pinch: "MIDDLE_FINGER_TIP",
-  ring_pinch: "RING_FINGER_TIP",
-  pinky_pinch: "PINKY_TIP",
-};
 
 export function getUserHandGesture(handGestureInformation) {
   const gestures = handGestureInformation.gestures;
@@ -38,7 +31,7 @@ export function getUserHandGesture(handGestureInformation) {
     const indexKeypoint = handGestureInformation.keypoints.INDEX_FINGER_TIP;
     const thumbKeypoint = handGestureInformation.keypoints.THUMB_TIP;
     if (gesture_name) {
-      if (gesture_name != "none") {
+      if (gesture_name !== "none") {
         return [
           gesture_name,
           handGestureInformation.keypoints.INDEX_FINGER_TIP,

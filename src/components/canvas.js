@@ -50,17 +50,40 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
 
   const drawingPointsRef = useRef([]);
   const lastVideoTimeRef = useRef(-1);
+  const previousGestureRef = useRef(null);
+
+  const availableTools = ["select", "hand", "draw", "eraser", "geo"];
 
   const changeCanvasTool = (gesture) => {
+    // Only process if the gesture is different from the previous one
+    // This prevents continuous cycling while holding the same gesture
+    if (gesture === previousGestureRef.current) {
+      return;
+    }
+
+    // Update the previous gesture
+    previousGestureRef.current = gesture;
+
     switch (gesture) {
       case "middle_pinch":
-        editor.setCurrentTool("eraser");
+        // Find current tool in the array
+        const currentTool = editor.getCurrentTool();
+        const currentToolIndex = availableTools.indexOf(currentTool.id);
+
+        // Calculate next tool index (default to 0 if current tool not found)
+        const nextToolIndex =
+          currentToolIndex !== -1
+            ? (currentToolIndex + 1) % availableTools.length
+            : 0;
+
+        // Set the next tool
+        editor.setCurrentTool(availableTools[nextToolIndex]);
         return;
       case "ring_pinch":
-        editor.setCurrentTool("select");
-        return;
-      case "pinky_pinch":
-        editor.setCurrentTool("draw");
+        // Turn off webcam when ring finger pinch is detected
+        if (isStreaming) {
+          setStreaming(false);
+        }
         return;
       default:
         return;
@@ -78,7 +101,7 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
   };
 
   const draw = (hands) => {
-    if (hands.length < 1) {
+    if (hands.length < 1 || !editor) {
       setDrawing(false);
       return;
     }
@@ -106,7 +129,7 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
         ];
         setDrawing(true);
 
-        if (!editor.inputs.buttons.has(0)) {
+        if (editor && !editor.inputs.buttons.has(0)) {
           const point = getClientPointFromCanvasPoint({
             point: trackingPoint,
             editor,
@@ -153,6 +176,13 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
         console.log("webcam teardown!");
       }
       if (floatingCanvasCtx) {
+        // Clear the canvas before destroying the context
+        floatingCanvasCtx.clearRect(
+          0,
+          0,
+          floatingCanvasCtx.canvas.width,
+          floatingCanvasCtx.canvas.height
+        );
         setFloatingCanvasCtx(null);
         console.log("canvas teardown!");
       }
@@ -163,7 +193,7 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
     } else {
       destroy();
     }
-  }, [isStreaming]);
+  }, [isStreaming, floatingCanvasCtx]);
 
   useEffect(() => {
     if (!isDrawing) {
@@ -189,7 +219,7 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
       }
       drawingPointsRef.current = [];
     }
-  }, [isDrawing]);
+  }, [isDrawing, editor]);
 
   useAnimationFrame(async (delta) => {
     let hands;
@@ -238,7 +268,6 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
         style={{
           position: "fixed",
           backgroundColor: "transparent",
-          display: isStreaming ? "block" : "none",
           transform: "scaleX(-1)",
           top: 0,
           left: 0,
@@ -255,14 +284,18 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
           position: "fixed",
           pointerEvents: "none",
           objectFit: "cover",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          opacity: 0.3,
+          top: "0px",
+          left: "0px",
+          width: "100vw",
+          height: "100vh",
+          opacity: "0.3",
           zIndex: 10,
+          filter: "blur(25px)",
+          background: "transparent",
         }}
         id="video"
+        autoPlay
+        muted
         playsInline
       />
       <Tldraw

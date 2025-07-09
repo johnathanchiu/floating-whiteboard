@@ -41,7 +41,10 @@ function App() {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen">
+    <div
+      className="flex flex-col h-screen"
+      style={{ background: "transparent" }}
+    >
       <Analytics />
       <CanvasComponent
         detector={detector}
