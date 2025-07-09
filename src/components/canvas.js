@@ -79,12 +79,12 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
         // Set the next tool
         editor.setCurrentTool(availableTools[nextToolIndex]);
         return;
-      case "ring_pinch":
-        // Turn off webcam when ring finger pinch is detected
-        if (isStreaming) {
-          setStreaming(false);
-        }
-        return;
+      // case "ring_pinch":
+      //   // Turn off webcam when ring finger pinch is detected
+      //   if (isStreaming) {
+      //     setStreaming(false);
+      //   }
+      //   return;
       default:
         return;
     }
