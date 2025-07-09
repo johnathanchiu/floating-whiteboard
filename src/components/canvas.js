@@ -3,15 +3,15 @@ import { DefaultSizeStyle, Tldraw, getSvgPathFromPoints } from "tldraw";
 
 import FloatingMenu from "./menu";
 
-import { createKeyMap, getUserHandGesture } from "../lib/pose";
-import { useAnimationFrame } from "../lib/hooks/animation";
-import { setupWebcam, teardownWebcam } from "../lib/video";
-import { euclideanDistance } from "../lib/utils";
+import { createKeyMap, getUserHandGesture } from "../utils/pose";
+import { useAnimationFrame } from "../hooks/animation";
+import { setupWebcam, teardownWebcam } from "../utils/video";
+import { euclideanDistance } from "../utils/transforms";
 import {
   drawHands,
   drawPath,
   getClientPointFromCanvasPoint,
-} from "../lib/draw";
+} from "../utils/draw";
 
 function LaserScribble({ scribble, zoom, color, opacity, className }) {
   if (!scribble.points.length) return null;

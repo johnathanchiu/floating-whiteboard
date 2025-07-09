@@ -1,4 +1,4 @@
-import { euclideanDistance } from "./utils";
+import { euclideanDistance } from "./transforms";
 
 const FINGER_LOOKUP_INDICES = [
   "WRIST",
