@@ -1,4 +1,4 @@
-import { euclideanDistance } from "./transforms";
+import { euclideanDistance } from "./math";
 
 const FINGER_LOOKUP_INDICES = [
   "WRIST",
@@ -24,12 +24,12 @@ const FINGER_LOOKUP_INDICES = [
   "PINKY_TIP",
 ];
 
+const INDEX_PINCH_THRESHOLD = 0.06;
+
 export function getUserHandGesture(handGestureInformation) {
   const gestures = handGestureInformation.gestures;
   if (gestures) {
     const gesture_name = gestures[0].categoryName;
-    const indexKeypoint = handGestureInformation.keypoints.INDEX_FINGER_TIP;
-    const thumbKeypoint = handGestureInformation.keypoints.THUMB_TIP;
     if (gesture_name) {
       if (gesture_name !== "none") {
         return [
@@ -39,11 +39,14 @@ export function getUserHandGesture(handGestureInformation) {
       }
     }
 
+    const indexKeypoint = handGestureInformation.keypoints.INDEX_FINGER_TIP;
+    const thumbKeypoint = handGestureInformation.keypoints.THUMB_TIP;
+
     if (
       euclideanDistance([
         [indexKeypoint.x, thumbKeypoint.x],
         [indexKeypoint.y, thumbKeypoint.y],
-      ]) <= 0.06
+      ]) <= INDEX_PINCH_THRESHOLD
     ) {
       return ["index_pinch", handGestureInformation.keypoints.INDEX_FINGER_TIP];
     }

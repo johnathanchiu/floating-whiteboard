@@ -1,34 +1,20 @@
 import { useEffect, useState, useRef } from "react";
-import { DefaultSizeStyle, Tldraw, getSvgPathFromPoints } from "tldraw";
+import { DefaultSizeStyle, Tldraw } from "tldraw";
 
-import FloatingMenu from "./menu";
+import LaserScribble from "./LaserScribble";
+import FloatingMenu from "./FloatingMenu";
 
-import { createKeyMap, getUserHandGesture } from "../utils/pose";
-import { useAnimationFrame } from "../hooks/animation";
-import { setupWebcam, teardownWebcam } from "../utils/video";
-import { euclideanDistance } from "../utils/transforms";
+import { createKeyMap, getUserHandGesture } from "../utils/gestures";
+import { useAnimationFrame } from "../hooks/useAnimationFrame";
+import { setupWebcam, teardownWebcam } from "../utils/webcam";
+import { euclideanDistance } from "../utils/math";
 import {
   drawHands,
   drawPath,
   getClientPointFromCanvasPoint,
-} from "../utils/draw";
+} from "../utils/drawing";
 
-function LaserScribble({ scribble, zoom, color, opacity, className }) {
-  if (!scribble.points.length) return null;
-
-  return (
-    <svg className={"tl-overlays__item"}>
-      <path
-        className="tl-scribble"
-        d={getSvgPathFromPoints(scribble.points, false)}
-        stroke="rgba(255, 0, 0, 0.5)"
-        fill="none"
-        strokeWidth={8 / zoom}
-        opacity={opacity ?? scribble.opacity}
-      />
-    </svg>
-  );
-}
+const MIN_DRAWING_POINT_DISTANCE = 0.005;
 
 async function setupCanvas(video, canvasID) {
   const canvas = document.getElementById(canvasID);
@@ -41,7 +27,7 @@ async function setupCanvas(video, canvasID) {
 }
 
 export default function CanvasComponent({ detector, isModelLoaded }) {
-  const editor = window.editor;
+  const editorRef = useRef(null);
   const videoRef = useRef(null);
   const [floatingCanvasCtx, setFloatingCanvasCtx] = useState(null);
 
@@ -54,53 +40,42 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
 
   const availableTools = ["select", "hand", "draw", "eraser", "geo"];
 
-  const changeCanvasTool = (gesture) => {
-    // Only process if the gesture is different from the previous one
-    // This prevents continuous cycling while holding the same gesture
+  const cycleCanvasTool = (gesture) => {
     if (gesture === previousGestureRef.current) {
       return;
     }
 
-    // Update the previous gesture
     previousGestureRef.current = gesture;
 
     switch (gesture) {
       case "middle_pinch":
-        // Find current tool in the array
+        const editor = editorRef.current;
         const currentTool = editor.getCurrentTool();
         const currentToolIndex = availableTools.indexOf(currentTool.id);
 
-        // Calculate next tool index (default to 0 if current tool not found)
         const nextToolIndex =
           currentToolIndex !== -1
             ? (currentToolIndex + 1) % availableTools.length
             : 0;
 
-        // Set the next tool
         editor.setCurrentTool(availableTools[nextToolIndex]);
         return;
-      // case "ring_pinch":
-      //   // Turn off webcam when ring finger pinch is detected
-      //   if (isStreaming) {
-      //     setStreaming(false);
-      //   }
-      //   return;
       default:
         return;
     }
   };
 
   const nextDrawingPointIsFarEnough = (trackingPoint, previousPoint) => {
-    // Determines if the current point is far enough from the previous point
     return (
       euclideanDistance([
         [trackingPoint.x, previousPoint.x],
         [trackingPoint.y, previousPoint.y],
-      ]) >= 0.005
+      ]) >= MIN_DRAWING_POINT_DISTANCE
     );
   };
 
   const draw = (hands) => {
+    const editor = editorRef.current;
     if (hands.length < 1 || !editor) {
       setDrawing(false);
       return;
@@ -108,11 +83,7 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
 
     for (let i = 0; i < hands.length; i++) {
       const [gesture, trackingPoint] = getUserHandGesture(hands[i]);
-      changeCanvasTool(gesture);
-
-      // TODO: Make such that if it is in the midst of drawing increase the threshold
-      // (due to quick rapid movements that result in the distance being a bit larger and misread)
-      // const pinchThreshold = 0.06;
+      cycleCanvasTool(gesture);
 
       if (gesture === "index_pinch" && trackingPoint) {
         if (drawingPointsRef.current.length > 0) {
@@ -149,7 +120,7 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
           });
         }
 
-        drawPath(drawingPointsRef.current);
+        drawPath(drawingPointsRef.current, editor);
       } else {
         setDrawing(false);
       }
@@ -159,7 +130,13 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
   useEffect(() => {
     async function initialize() {
       if (!videoRef.current) {
-        videoRef.current = await setupWebcam();
+        try {
+          videoRef.current = await setupWebcam();
+        } catch (error) {
+          console.error("Failed to setup webcam:", error);
+          setStreaming(false);
+          return;
+        }
       }
       if (!floatingCanvasCtx) {
         const [, ctx] = await setupCanvas(videoRef.current, "float-canvas");
@@ -173,7 +150,6 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
         videoRef.current = null;
       }
       if (floatingCanvasCtx) {
-        // Clear the canvas before destroying the context
         floatingCanvasCtx.clearRect(
           0,
           0,
@@ -192,10 +168,11 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
   }, [isStreaming, floatingCanvasCtx]);
 
   useEffect(() => {
+    const editor = editorRef.current;
     if (!isDrawing) {
       const lastPoint =
         drawingPointsRef.current[drawingPointsRef.current.length - 1];
-      if (lastPoint) {
+      if (lastPoint && editor) {
         const point = getClientPointFromCanvasPoint({
           point: drawingPointsRef.current[drawingPointsRef.current.length - 1],
           editor,
@@ -215,17 +192,17 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
       }
       drawingPointsRef.current = [];
     }
-  }, [isDrawing, editor]);
+  }, [isDrawing]);
 
   useAnimationFrame(async (delta) => {
     let hands;
-    if (!detector) return;
+    if (!detector.current) return;
 
     let nowInMs = Date.now();
     if (videoRef.current.currentTime !== lastVideoTimeRef.current) {
       lastVideoTimeRef.current = videoRef.current.currentTime;
 
-      hands = await detector.recognizeForVideo(videoRef.current, nowInMs);
+      hands = await detector.current.recognizeForVideo(videoRef.current, nowInMs);
       hands = createKeyMap(hands);
 
       floatingCanvasCtx.clearRect(
@@ -299,11 +276,10 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
           Scribble: LaserScribble,
         }}
         onMount={(editor) => {
-          // hide the debug panel (for cleaner gifs)
           editor.updateInstanceState({
             isDebugMode: false,
           });
-          window["editor"] = editor;
+          editorRef.current = editor;
           editor.setCurrentTool("draw");
           editor.setStyleForNextShapes(DefaultSizeStyle, "xl");
         }}

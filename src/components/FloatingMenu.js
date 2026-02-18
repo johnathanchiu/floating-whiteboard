@@ -8,7 +8,6 @@ const FloatingMenu = ({
   videoRef,
   isModelLoaded,
 }) => {
-  // Load saved position from localStorage or use default
   const [position, setPosition] = useState(() => {
     const savedPosition = localStorage.getItem("menuPosition");
     return savedPosition ? JSON.parse(savedPosition) : { x: 20, y: 100 };
@@ -19,13 +18,11 @@ const FloatingMenu = ({
   const dragStartRef = useRef({ x: 0, y: 0 });
   const initialPositionRef = useRef({ x: 0, y: 0 });
 
-  // Save position to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("menuPosition", JSON.stringify(position));
   }, [position]);
 
   const updatePosition = useCallback((dx, dy) => {
-    // Ensure menu stays within viewport bounds
     const newX = Math.max(
       0,
       Math.min(window.innerWidth - 120, initialPositionRef.current.x + dx)
@@ -62,7 +59,7 @@ const FloatingMenu = ({
       const dy = touch.clientY - dragStartRef.current.y;
 
       updatePosition(dx, dy);
-      e.preventDefault(); // Prevent scrolling while dragging
+      e.preventDefault();
     },
     [updatePosition]
   );
@@ -80,7 +77,6 @@ const FloatingMenu = ({
   }, [handleTouchMove]);
 
   const handleMouseDown = (e) => {
-    // Allow dragging from the menu container or the title area, but not from buttons
     const isDraggableArea =
       e.target === e.currentTarget ||
       e.target.classList.contains("draggable-area") ||
@@ -93,7 +89,6 @@ const FloatingMenu = ({
     dragStartRef.current = { x: point.clientX, y: point.clientY };
     initialPositionRef.current = position;
 
-    // Add both mouse and touch event listeners
     if (e.type === "mousedown") {
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mouseup", handleMouseUp);
@@ -131,14 +126,11 @@ const FloatingMenu = ({
         onMouseDown={handleMouseDown}
         onTouchStart={handleMouseDown}
       >
-        {/* Title */}
         <div className="text-white text-sm font-medium text-center border-b border-white/20 pb-2 draggable-area cursor-move">
           Controls
         </div>
 
-        {/* Main buttons */}
         <div className="flex gap-3 justify-center">
-          {/* Webcam Button */}
           {isModelLoaded && (
             <button
               className="text-white opacity-80 hover:opacity-100 transition-all transform hover:scale-110 relative group/tooltip p-2 rounded-md hover:bg-white/10"
@@ -153,7 +145,6 @@ const FloatingMenu = ({
             </button>
           )}
 
-          {/* Instructions Button */}
           <button
             className="text-white opacity-80 hover:opacity-100 transition-all transform hover:scale-110 relative group/tooltip p-2 rounded-md hover:bg-white/10"
             onClick={() => setShowInstructions(!showInstructions)}
@@ -163,13 +154,11 @@ const FloatingMenu = ({
           </button>
         </div>
 
-        {/* Credits */}
         <div className="text-white text-xs opacity-60 text-center border-t border-white/20 pt-2 draggable-area cursor-move">
           by johnathan chiu
         </div>
       </div>
 
-      {/* Instructions Modal */}
       {showInstructions && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50"
@@ -206,14 +195,6 @@ const FloatingMenu = ({
                   <div>
                     <strong>Change Tools:</strong> Pinch your middle finger and
                     thumb to cycle through tools
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="text-blue-400 font-bold">4.</div>
-                  <div>
-                    <strong>Close Webcam:</strong> Pinch your ring finger and
-                    thumb to turn off webcam
                   </div>
                 </div>
               </div>

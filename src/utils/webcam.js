@@ -10,10 +10,6 @@ export async function setupWebcam() {
   const video = document.getElementById("video");
   const stream = await window.navigator.mediaDevices.getUserMedia({
     video: true,
-    // video: {
-    //   width: { ideal: 480 },
-    //   height: { ideal: 360 },
-    // },
   });
 
   video.srcObject = stream;
